@@ -73,7 +73,39 @@ architecture Behavioral of top is
 
 
 
+  procedure ImagenBorde (
+    signal sw_active  : in  std_logic;
+    signal r_IN0  : in  std_logic_vector(15 downto 0);
+    signal r_IN1  : in  std_logic_vector(15 downto 0);
+    signal r_IN2  : in  std_logic_vector(15 downto 0);
+    signal r_OUT : out std_logic_vector(15 downto 0)
+    ) is
+  begin
+		if(sw_active = '1') then
+		
+			if(r_IN0(14) = '0' and r_IN1(14) = '0' and r_IN2(14) = '1') then
+				r_OUT<="1"&"11111"&"11111"&"11111";
+			elsif(r_IN0(14) = '1' and r_IN1(14) = '1' and r_IN2(14) = '0') then
+				r_OUT<="1"&"11111"&"11111"&"11111";
+				
+--			elsif(r_IN0(14) = '1' and r_IN1(14) = '1' and r_IN2(14) = '1') then
+--				r_OUT<="1"&"11111"&"00000"&"00000";
+--
+--				
+--			elsif(r_IN0(14) = '0' and r_IN1(14) = '0' and r_IN2(14) = '0') then
+--				r_OUT<="1"&"00000"&"11111"&"00000";
+			else
 
+				r_OUT<="0"&"00000"&"00000"&"00000";
+			end if;
+			
+		else
+			r_OUT <= r_IN2;	
+			
+		end if;
+		
+		
+  end ImagenBorde;
 
 
 
@@ -256,6 +288,18 @@ signal sw5_pulsado		: std_logic := '0';
 -- Signals que invento Blas
 
 signal imagen_threshold : std_logic_vector(15 downto 0); -- Esta signal, es la salida del procedure.
+signal imagen_borde : std_logic_vector(15 downto 0); -- Esta signal, es la salida del procedure.
+
+signal p0 : std_logic_vector(15 downto 0); -- Esta signal, es la entrada del procedure.
+signal p1 : std_logic_vector(15 downto 0); -- Esta signal, es la entrada del procedure.
+signal p2 : std_logic_vector(15 downto 0); -- Esta signal, es la entrada del procedure.
+
+signal p0aux : std_logic_vector(15 downto 0) := (others => '0'); -- Esta signal, es la entrada del procedure.
+signal p1aux : std_logic_vector(15 downto 0) := (others => '0'); -- Esta signal, es la entrada del procedure.
+signal p2aux : std_logic_vector(15 downto 0) := (others => '0'); -- Esta signal, es la entrada del procedure.
+
+
+
 --signal imagen_camara : std_logic_vector(11 downto 0); -- Esta signal, es la salida del procedure.
 
 	
@@ -384,7 +428,7 @@ DO_ram_blue		<= ram_out_16bit(4 downto 1);
 		wr_enable	=> signal_we_b,--'1',--signal_we_b,
 		enable_b		=> '1',
 		ADDR_write	=> ADDR_b,	
-		data_write	=> imagen_threshold--bus_datos_b	
+		data_write	=> imagen_borde--imagen_threshold--bus_datos_b	
 	);
 
 	ov7670_pclk_neg <= NOT ov7670_pclk_buf;
@@ -572,6 +616,44 @@ begin
 
 
 end process;	
+
+process(ADDR_b)
+
+
+	begin
+
+		if(ADDR_b = 0) then
+		
+			imagen_borde <= imagen_threshold;
+			p0<= imagen_threshold;
+			ImagenBorde(sw5_debounce,p0,p1,p2,imagen_borde);
+			
+		elsif(ADDR_b = 1) then
+		
+			p1<= imagen_threshold;
+			ImagenBorde(sw5_debounce,p0,p1,p2,imagen_borde);
+			
+		else
+		
+			if(ADDR_b(0) = '0') then 
+			
+				p2<= imagen_threshold;
+				ImagenBorde(sw5_debounce,p0,p1,p2,imagen_borde);
+				p0aux<=p1;
+				p1aux<=p2;
+				
+			elsif(ADDR_b(0) = '1') then 
+			
+				p2aux<= imagen_threshold;
+				ImagenBorde(sw5_debounce,p0aux,p1aux,p2aux,imagen_borde);
+				p0<=p1aux;
+				p1<=p2aux;
+				
+			end if;
+			
+		end if;
+
+end process;
 	
 	
 end Behavioral;
