@@ -3,4 +3,4 @@
 # Un-ignore all of subtree
 !/codigos/
 !.gitignore
-!*.xise
+#!*.xise
