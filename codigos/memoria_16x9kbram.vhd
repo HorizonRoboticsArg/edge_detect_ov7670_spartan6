@@ -1,0 +1,1801 @@
+----------------------------------------------------------------------------------
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date:    17:10:02 05/06/2020 
+-- Design Name: 
+-- Module Name:    memoria_16x9kbram - Behavioral 
+-- Project Name: 
+-- Target Devices: 
+-- Tool versions: 
+-- Description: 
+--
+-- Dependencies: 
+--
+-- Revision: 
+-- Revision 0.01 - File Created
+-- Additional Comments: 
+--
+----------------------------------------------------------------------------------
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+Library UNISIM;
+use UNISIM.vcomponents.all;
+
+use work.paquete_multiplexor.all;
+
+
+
+entity memoria_16x9kbram is
+    Port ( 
+				CLK_25 	: in  STD_LOGIC;
+				ADDR		: in	STD_LOGIC_VECTOR(12 downto 0) := (others => '0');
+				memoria_out 	: out  STD_LOGIC_VECTOR(15 downto 0);
+				
+				CLK_write		: in  STD_LOGIC;--debe ser flanco negativo de pclk
+				wr_enable	: in  STD_LOGIC;
+				enable_b		: in  STD_LOGIC;
+				ADDR_write		: in	STD_LOGIC_VECTOR(12 downto 0) := (others => '0');
+				data_write	 	: in	STD_LOGIC_VECTOR(15 downto 0)
+				
+			);
+end memoria_16x9kbram;
+
+architecture Behavioral of memoria_16x9kbram is
+
+
+
+COMPONENT multiplexor_16x16bits is
+    Port (	selector : in  STD_LOGIC_VECTOR(3 downto 0);
+				entrada_multiplex : in vector16x16bits;
+				salida : out  STD_LOGIC_VECTOR(15 downto 0));
+end COMPONENT;
+
+
+
+--bus de salida de este "componente memoria"
+SIGNAL ram_out_16bit		: STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+
+
+--habilitador de cada bloque de ram
+SIGNAL enablers		: STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+SIGNAL enablers_b		: STD_LOGIC_VECTOR(15 downto 0) := (others => '0');
+
+
+--Vector con los buses de salida de cada ram
+signal salidas_rams : vector16x16bits;
+
+signal addr_ram : STD_LOGIC_VECTOR(12 downto 0) := (others => '0');
+signal addr_b : STD_LOGIC_VECTOR(12 downto 0) := (others => '0');
+
+signal we_b : STD_LOGIC_VECTOR(1 downto 0) := (others => '0');
+
+
+begin
+
+	we_b <= wr_enable & wr_enable;
+	addr_b <= ADDR_write(8 downto 0) & "0000";
+	
+	multiplexor_inst : multiplexor_16x16bits
+	port map(
+		entrada_multiplex => salidas_rams,
+		selector	=> ADDR(12 downto 9),
+		salida	=> ram_out_16bit
+	);
+
+
+	memoria_out <= ram_out_16bit;
+
+	addr_ram <= ADDR(8 downto 0) & "0000";
+	
+	enablers(0) <= NOT	addr(12)	AND NOT	addr(11)	AND NOT	addr(10)	AND NOT	addr(9);
+	enablers(1) <= NOT	addr(12)	AND NOT	addr(11)	AND NOT	addr(10)	AND		addr(9);
+	enablers(2) <= NOT	addr(12)	AND NOT	addr(11)	AND		addr(10)	AND NOT	addr(9);
+	enablers(3) <= NOT	addr(12)	AND NOT	addr(11)	AND		addr(10)	AND		addr(9);
+	enablers(4) <= NOT	addr(12)	AND		addr(11)	AND NOT	addr(10)	AND NOT	addr(9);
+	enablers(5) <= NOT	addr(12)	AND		addr(11)	AND NOT	addr(10)	AND		addr(9);
+	enablers(6) <= NOT	addr(12)	AND		addr(11)	AND		addr(10)	AND NOT	addr(9);
+	enablers(7) <= NOT	addr(12)	AND		addr(11)	AND		addr(10)	AND		addr(9);
+	enablers(8) <=			addr(12)	AND NOT	addr(11)	AND NOT	addr(10)	AND NOT	addr(9);
+	enablers(9) <=			addr(12)	AND NOT	addr(11)	AND NOT	addr(10)	AND		addr(9);
+	enablers(10)<=			addr(12)	AND NOT	addr(11)	AND		addr(10)	AND NOT	addr(9);
+	enablers(11)<=			addr(12)	AND NOT	addr(11)	AND		addr(10)	AND		addr(9);
+	enablers(12)<=			addr(12)	AND		addr(11)	AND NOT	addr(10)	AND NOT	addr(9);
+	enablers(13)<=			addr(12)	AND		addr(11)	AND NOT	addr(10)	AND 		addr(9);
+	enablers(14)<=			addr(12)	AND		addr(11)	AND		addr(10)	AND NOT	addr(9);
+	enablers(15)<=			addr(12)	AND		addr(11)	AND		addr(10)	AND		addr(9);
+
+
+	
+	enablers_b(0) <= 	NOT	ADDR_write(12)	AND NOT	ADDR_write(11)	AND NOT	ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(1) <= 	NOT	ADDR_write(12)	AND NOT	ADDR_write(11)	AND NOT	ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(2) <= 	NOT	ADDR_write(12)	AND NOT	ADDR_write(11)	AND		ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(3) <= 	NOT	ADDR_write(12)	AND NOT	ADDR_write(11)	AND		ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(4) <= 	NOT	ADDR_write(12)	AND		ADDR_write(11)	AND NOT	ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;	
+	enablers_b(5) <= 	NOT	ADDR_write(12)	AND		ADDR_write(11)	AND NOT	ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(6) <= 	NOT	ADDR_write(12)	AND		ADDR_write(11)	AND		ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(7) <= 	NOT	ADDR_write(12)	AND		ADDR_write(11)	AND		ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(8) <=			ADDR_write(12)	AND NOT	ADDR_write(11)	AND NOT	ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(9) <=			ADDR_write(12)	AND NOT	ADDR_write(11)	AND NOT	ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(10)<=			ADDR_write(12)	AND NOT	ADDR_write(11)	AND		ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(11)<=			ADDR_write(12)	AND NOT	ADDR_write(11)	AND		ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+	enablers_b(12)<=			ADDR_write(12)	AND		ADDR_write(11)	AND NOT	ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(13)<=			ADDR_write(12)	AND		ADDR_write(11)	AND NOT	ADDR_write(10)	AND 		ADDR_write(9)	AND enable_b;
+	enablers_b(14)<=			ADDR_write(12)	AND		ADDR_write(11)	AND		ADDR_write(10)	AND NOT	ADDR_write(9)	AND enable_b;
+	enablers_b(15)<=			ADDR_write(12)	AND		ADDR_write(11)	AND		ADDR_write(10)	AND		ADDR_write(9)	AND enable_b;
+
+
+   RAMB8BWER_inst_0 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"1C621C621C621C631C831C83186218621862186218831883188314A314A418C5",
+		INIT_01 => X"3421344234633063244120202441244224421C411C411C4118411C421C621C62",
+		INIT_02 => X"38423C6338423422342234213421302130222C2228002C21304238433C433C42",
+		INIT_03 => X"3C433C4340643C22404340443C433C433C423842382238423C433C4338433421",
+		INIT_04 => X"2021202124212421242130013C43446440433C223C2238223422344338433843",
+		INIT_05 => X"24C424C424C524C524E524E6148314831883186218411C411C211C211C211C21",
+		INIT_06 => X"344134413040304130612C612C612C622C822C822C822CA330A32CA32CA32CA3",
+		INIT_07 => X"44413C2040214C42586460645C63544250424C824C834882446240413C413861",
+		INIT_08 => X"5C4358225C43606464855C6358225C635C84584254215021546258634C214820",
+		INIT_09 => X"68646443644460645C635C6460646064688564655C2360436044604360436043",
+		INIT_0A => X"2C4030413441384138213800380040214021442144214C015421606370A67085",
+		INIT_0B => X"3061306130823082308230822CA328A428A428C424A320C420A324A328832861",
+		INIT_0C => X"4C404C81446140604060446140413C403820344034403440306030412C413061",
+		INIT_0D => X"546150205020544154614C414440404040203C00440050425C62584150404C20",
+		INIT_0E => X"6484648360425C415C415C215C415C21582058215C416483606358415C625C83",
+		INIT_0F => X"4820502050005820646270846C636442644364635C625C626063606360636483",
+		INIT_10 => X"2CC428C424A328A32C8234623C613C403C403C41382038003800402044204420",
+		INIT_11 => X"3440304030403041304130413041304130623062306230622C622C822CA32CA3",
+		INIT_12 => X"3C003C204C20544258834C40402040204060406040604441444140413C613C61",
+		INIT_13 => X"50005820646364835C42606260635842542154205841584154214C2048004000",
+		INIT_14 => X"60635C4258425C6360845C6260426463646464635C225C215C42582158215400",
+		INIT_15 => X"38403C413C2040204020442048205021500058205C0068637084708464226022",
+		INIT_16 => X"306230622C622C622C832CA32CA32CA328A42CA43062386244833C003C413840",
+		INIT_17 => X"4461446240413C41384134413862388230613062306230623062306230623062",
+		INIT_18 => X"58425C425C225C22540148213C20342040004C00544254635062484144204440",
+		INIT_19 => X"68A560645C4260645822542158225401540158215C635C6360635C6358425421",
+		INIT_1A => X"5C215C006C64708570A66043606360645C6354425C6360846484606360646484",
+		INIT_1B => X"306334423C213C2140423C213C21444240214421440048004821502150215821",
+		INIT_1C => X"346234623462346230623062306230623062306230622C822C82288228A42CA4",
+		INIT_1D => X"4800504254635042504148204820444144414041404138403440344134613462",
+		INIT_1E => X"504254425863586358635463504254425C635C435843504244413C2040004000",
+		INIT_1F => X"54635C84608460645C645C645863608464A55C645863544250224C214C204C21",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(0),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(0),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,     -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(0),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+   RAMB8BWER_inst_1 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"480048004C214C21544258425C4258005C2168856CC770E8606454215C845C84",
+		INIT_01 => X"30622C62286228822CA330833042344138213C21402140214421482244214821",
+		INIT_02 => X"444140403C203820384038403460344034603460346134613061346134623062",
+		INIT_03 => X"5C6258415820584044413C203C0044204C41506250624C414820482048404441",
+		INIT_04 => X"64A5648560844C414C414C204C005020544158425C4358425462544250415862",
+		INIT_05 => X"688578E874C7688558225C635C635C4360436864688564846484606460636484",
+		INIT_06 => X"40414020442148414420442044004420482054215C6360436022644260016042",
+		INIT_07 => X"3441346130613061344134413442304130622C6238A338A3346134413C413820",
+		INIT_08 => X"4C4150625462504150414C41482048404841444140203C203840384034403440",
+		INIT_09 => X"58425C6358425421544154415C62606260426021504148414421442048414C62",
+		INIT_0A => X"64646885688568856CA5646464636864688460845842502050004C0050005421",
+		INIT_0B => X"6042686364216822642168436843686470A674A670A660435842584360636043",
+		INIT_0C => X"38A338833CA33841382038004862442040204441482144203C203C2044415421",
+		INIT_0D => X"48404441402140213C2138413421344130413061306134413441344134623062",
+		INIT_0E => X"5C23582250214820442048414C4250424C2150215041504150624C4148404840",
+		INIT_0F => X"608460845C84586350414C204C2154425C63584258415841584158425C625C63",
+		INIT_10 => X"70C76CC664A5584354425863584354225C6468A6648568846884686468636484",
+		INIT_11 => X"4C2244013820382044215442584168846442686364215C006864646464636CA5",
+		INIT_12 => X"2C612C613061306130623062308334833862384138213C21482148413C204842",
+		INIT_13 => X"4C204C4050624C414C414840484044414421404140413C413820342030203020",
+		INIT_14 => X"5C6358625441544258625C63646360435842502148204400440048404C615041",
+		INIT_15 => X"5C4360846484606364846064648564A560A55C84586350215041544254425C63",
+		INIT_16 => X"68636042582164636C64648460846CE76CA670A75C4354635042542254425843",
+		INIT_17 => X"3C214042484248213C2048424C2144003C203C20442158425821688468636441",
+		INIT_18 => X"442140413C413C21382034202C412C412C413041304230423083348238624484",
+		INIT_19 => X"58425041482044204820504250414C214C204C414C414C414841484148214441",
+		INIT_1A => X"5C845C8454425021502154625863588358635862544250415C4360435C425C42",
+		INIT_1B => X"68C658645463546450424C0150225843586358635C6460845C63584258635C84",
+		INIT_1C => X"44005842582164636C846462604264845441582168646CA564645C43648568A5",
+		INIT_1D => X"304230623083348238624CC548634000482148213C204442482140003C213C21",
+		INIT_1E => X"4C414C4148414C414C41484148214441444140413C2038203421304130413041",
+		INIT_1F => X"546250415442584258425C425C42584258625041480048204C4150624C414C41",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(1),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(1),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(1),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	RAMB8BWER_inst_2 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"5443544258435C6358435442586360A55C845463504250215041504254635462",
+		INIT_01 => X"5C426443708568655C8458A45CA468A65C8450435043504350424C2150225463",
+		INIT_02 => X"3C204441482140003C413C41440054215C4260626C8468636062608360A45862",
+		INIT_03 => X"40404041404240423822342130202C40308330623C833821402144014C224821",
+		INIT_04 => X"58424820482048214C214C414841482148214C414C414C414C41484144204420",
+		INIT_05 => X"546350424C41504150415042504250424C414C41504254425842584258425842",
+		INIT_06 => X"546454635063504250434C424C22502250215442544354635042502158635CA5",
+		INIT_07 => X"688370C5606260835CA45CA45C635822606468A660A55CA460A4648464C65CA5",
+		INIT_08 => X"34423821402144214C21484140413C20400040203C203C21440154215C426042",
+		INIT_09 => X"48204821482148214441444144414041442244223C213820300030202CA33062",
+		INIT_0A => X"4C624C425042546358435843584350624C4248214800482048214C214C414C21",
+		INIT_0B => X"4C214C214C42504250424C21588458845042504250424C214C21504250634C62",
+		INIT_0C => X"68A56884648460845C845C845C845884546350424C4250635063506248004800",
+		INIT_0D => X"38203C214401582160426042686370A56CA56083586364C564A65CA450635CA4",
+		INIT_0E => X"3C213C413C403C202CA32C82306234413C2144214C21484140413C2040203C20",
+		INIT_0F => X"4C424C424C41482148204400440044004000402044214041402140413C003C00",
+		INIT_10 => X"50425463504248004C214C21482148414441444148214C214C214C424C424C42",
+		INIT_11 => X"504248004C42506358A4442048204821482048214C4250424C00504254635042",
+		INIT_12 => X"586260A560C6610758C554835C636CA568A564A460845C835862586358635864",
+		INIT_13 => X"4821484140413C2040203C2038203C214400582160636041646370A570C56CC6",
+		INIT_14 => X"3C003C203C003C203C203C2038203C20404040002CA32C823061344138214021",
+		INIT_15 => X"3C214021442144204820482048204821482148214C2148214421442144214421",
+		INIT_16 => X"4821504254424C214C2150425042504254425863582354234C2244213C213C21",
+		INIT_17 => X"648468C568E664A55C8354625483546348214420484154A44C634C4248214400",
+		INIT_18 => X"64635C2164626C847D296CC568A5546254E65CE664E75CA560C6588460846884",
+		INIT_19 => X"2CA328822C61304138203C214821484140413C4040203C2038203C2144005842",
+		INIT_1A => X"4C21484148414821482144214420402040003C003C413C413821382038203820",
+		INIT_1B => X"50424C2248214421404140414021442144204421442044204400482148214821",
+		INIT_1C => X"546254625C845C845864544350224821482148214C224C4248214C214C214C21",
+		INIT_1D => X"5D08614C54E958E854C558A460A45C63586264A468E668E660A45C845CA45883",
+		INIT_1E => X"344138213C20402040205420606360625C4268A5752870E764A475495CC45CE6",
+		INIT_1F => X"40004021402144413C203C202CA428832C6230413821404148214C423C213420",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(2),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(2),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(2),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+
+
+   RAMB8BWER_inst_3 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"4420442044204420442048214821502154215421542154215021502150214C20",
+		INIT_01 => X"50434C2250425042504250425442544250424C41482148214820480048204421",
+		INIT_02 => X"54625C8460C560C560A464C560A45C835C8360A55C8558845863546350635063",
+		INIT_03 => X"71087D8B6CE771075C8360A55CC7612A5D2A5D295D2959065CC560C560C55884",
+		INIT_04 => X"3821404148214C423C213020344134213C2040204020582064635C425C4264A4",
+		INIT_05 => X"58015821582254215401542150214C214C214820442144212CA4288328613041",
+		INIT_06 => X"504254425042544250424C414C414C414C4148214C414C414C4154425C225821",
+		INIT_07 => X"5C845CA55CA558855885588458845C8458845884588358835863584354425442",
+		INIT_08 => X"5D49596959075D085D085CE758C650835063546358A4546260C564C660A45C84",
+		INIT_09 => X"44205C2168845C22606268C668E67DAC756A64C568A4606360A55CA5694A654A",
+		INIT_0A => X"4C2148422CA4288328623041382140414821484238213020304134203C204020",
+		INIT_0B => X"5041504250425021542154215441544154425842544250215421542150215021",
+		INIT_0C => X"5C845C8460A560845C64586358635C845C835C635863504150414C4150415041",
+		INIT_0D => X"4C63546350625462586360A55CA5588458A45885588558845864546358635884",
+		INIT_0E => X"6CC668A55C6264A464E56949656A59495D6B5D4A5D29590958E8590854C750A5",
+		INIT_0F => X"38212C20304130003C00442048205C216C845C21606364A568E77DAD758B758B",
+		INIT_10 => X"504250425421502050204C41484244212CA42883286230413841404144214841",
+		INIT_11 => X"5041542154425442544258625442544254425863548354635463546354625042",
+		INIT_12 => X"54645464546354645884588458845884588358845C845CA45883546250214C21",
+		INIT_13 => X"618C5D4B5D4A590954E850C64CA65084508350634C425042548458A454845063",
+		INIT_14 => X"64636084690779AD75CD75CD7DEE64E664C4586160A360A465296D8D5D4B5D6B",
+		INIT_15 => X"28622C413841404144204842340028202C2130003C21482148205C2170846022",
+		INIT_16 => X"4C214C214C214C21504250424C2250214C414C414841402040203C2130E52CC5",
+		INIT_17 => X"506350635483548350634C414C41544254425442504258635863546350424C21",
+		INIT_18 => X"4C644C644C634C634C6350A554A54C644C6448424C6350635063506350835083",
+		INIT_19 => X"5C625C625C8468E8696B616A5D29658C616B658D658C5D4B50E850C64CA54C84",
+		INIT_1A => X"402148214C005C2170846422604364856D2979CD75EE71EE760F71CD65065CA3",
+		INIT_1B => X"3C213C203800340030E52CC528822C4134414042402048633000282028212C00",
+		INIT_1C => X"548450845084508450834C634C634C634C634C434C424C424C224C2244424041",
+		INIT_1D => X"54C650C650C550A54C844C8350845084508354845CC658E658A554A554845484",
+		INIT_1E => X"616C616D618D594B552A510850C74CA6486440423C4240424463446344634CA5",
+		INIT_1F => X"75EF720F76717A5175ED69285CA360836063584260C66D49716B5D08654B616B",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(3),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(3),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(3),        -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	RAMB8BWER_inst_4 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"40204C842C00242028202C00404248214C00644270A56442604368A6712979CE",
+		INIT_01 => X"38003800380038003821340134003821380038002CC528A428822C4134414062",
+		INIT_02 => X"5485506448424463406240624062382138203821384238413821382138213820",
+		INIT_03 => X"48A544A5408438423C423821300034003C21406248844C844C64506350435064",
+		INIT_04 => X"58405C6271286D49654A614A5D4B5D6D65D05DAE5DAE5D8D594B552951084CC7",
+		INIT_05 => X"70A56042604368C6712975AD75EF76307A937A727E727A0F758B64E660825C41",
+		INIT_06 => X"2CE528A328822C413441406240214C842C00240024202C004443480150016863",
+		INIT_07 => X"30212C2128202400240028002C002C002C0030003400380138013C0040214421",
+		INIT_08 => X"2C00300038214464486448634C644C644C63448344633C413820342034213021",
+		INIT_09 => X"61CE61AE5D8D596C596C556C514B492940C734642C212C223CA5388430422C21",
+		INIT_0A => X"7E727E737E517DEE71486D0660835C625C6268E66D086929654A656B5D6B5D8D",
+		INIT_0B => X"24212C0048634801502168A470A5602160636CA67109718C71CE7A107E727E93",
+		INIT_0C => X"380038003C00400048004C002CE528A42883286134613C6240204C842C202020",
+		INIT_0D => X"3C4140423821382130012C002C002C012C022C22280128002C20300034003800",
+		INIT_0E => X"30A730A72CA624642042204320432022200124012C0134213C42404240414041",
+		INIT_0F => X"648468A56CE76D276D69696A654A698C65AD61AE5DAE516D494C454B3D093909",
+		INIT_10 => X"70E871AD69AE698E69CE65CD65CD65CD65CD658C614A612960E75CC558835C63",
+		INIT_11 => X"2C6234424020446328211C212021302048624C00502170E56C42642164836CA5",
+		INIT_12 => X"30012C003000300034003400340038003C004020440048202CE528C420A32462",
+		INIT_13 => X"2C432C423042304230213020302030203862344230412C202C002C0030013001",
+		INIT_14 => X"698C6DAD616B554A45094D4B38C734A634A630A52C8428632042204328642864",
+		INIT_15 => X"306430433842448340424C635CA55CA564A664C6608464C664E76508694A694B",
+		INIT_16 => X"584274C568016863608364A564E84CE73CC62C432C6428642863246328833084",
+		INIT_17 => X"402048212CE524C420A324822C8234624041448328201C212021386248424C00",
+		INIT_18 => X"4042444244423C21380134003421384130013421342134213820382038003C00",
+		INIT_19 => X"510A5109452A3D0938C734A634A6348530642C4330433C43382238423C424042",
+		INIT_1A => X"6CC864A5608460A464C564C664E664E764E761085D09614B5D2A5D2A5509550A",
+		INIT_1B => X"100210220C220C2110211422182218221800202128423C8450E75CE864E868C7",
+		INIT_1C => X"24001C2120213C63484150205C6370846C42684260835C8450A5450720411821",
+		INIT_1D => X"34203421380038003C004000400044012D0528C420A324823082346244624483",
+		INIT_1E => X"346438223C4440634043404248434C6350434842404240413C21340034003400",
+		INIT_1F => X"60C660C66509692A652A696C6D6D696D618D5D8D596C4D0944C73CA638853464",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(4),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(4),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(4),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	
+   RAMB8BWER_inst_5 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"1C6428A534C644E75509652B692A64E76908690864E764C664C664C664E660C5",
+		INIT_01 => X"6484588450A538A52CA51C631C66188518851485188514641043144314631443",
+		INIT_02 => X"20A324822C8234624483448324002021242140634C21542064636C8368426442",
+		INIT_03 => X"504348004800482148214000442148424C424C4248424842484248222D0628C4",
+		INIT_04 => X"6D8C698C656B592950E748A644A63CA530433042344238423C41404144415063",
+		INIT_05 => X"614A696B6D8C696A610761076528652861285D28614A614A656B658C71AD71AD",
+		INIT_06 => X"10430C4308210C210C4310641063146320A530E734C64909554B5D4B590954E7",
+		INIT_07 => X"5021582164426883604164636CC660A5610940A634862CA724A7208620A71043",
+		INIT_08 => X"4C224C424842444228E524C424C420612C82344148A43C8220001C2130634463",
+		INIT_09 => X"44A5448344634C6350635442604368A66C8668656444686560235C224C014C21",
+		INIT_0A => X"6129654A614A5D29610865086508610961085D0858E758E758E850E848A648A6",
+		INIT_0B => X"28C730E7416C55AE59AE558D558C61CE61AD618C618C616A654965496549654A",
+		INIT_0C => X"28441002080104000000040004000000002100000000000108220C42188420A5",
+		INIT_0D => X"48C5344124411C003484446350215C21644264635C6268A5688564A754C848C8",
+		INIT_0E => X"64645C2260425C2154435042482140013C21382128E524C420A324A234C43462",
+		INIT_0F => X"61095D0961095CC8548650864C8448644C645064546454635463586460846484",
+		INIT_10 => X"65EF65AD71AD6D8D71AD75CE79CF75AE718D718D696C696C696C696B654B612A",
+		INIT_11 => X"3A512D6B18A61043142224A628C73109354A4DAE5A116232663266316A316E31",
+		INIT_12 => X"5C626CC668655CA64CE82C2314220021002104630463002100413A72158A21ED",
+		INIT_13 => X"290524C424C324A334C438624CE52C2028421C00348444425421604168626442",
+		INIT_14 => X"48423C413C613C4144414C6258835883546150404820482044203C2034002800",
+		INIT_15 => X"76327632761175F171F069AD614B590958E85CE954C74CC64484408444634463",
+		INIT_16 => X"55F05E326A7372957AB67AB56E326A1065EE65CE6E0F723176317A317A317A31",
+		INIT_17 => X"052800A4008311CC1E703F786FFE6318398C350949AE3D2B34E9352A394A458C",
+		INIT_18 => X"38844421582164416C6268425C6270C6688554A6348420430400004108E70508",
+		INIT_19 => X"4C4244214000400040213C2128E524C424C42482308334624CE62C4024422021",
+		INIT_1A => X"388538A5348430832C63306330432C42284024202420280030203C4248844C64",
+		INIT_1B => X"6A5172727693769376737272725272317231723272526E3165EF596B4D0844C7",
+		INIT_1C => X"72B65E11414A3D4B3D4A416B4DAE5A1062536A9472B67AF776D66E736A526A31",
+		INIT_1D => X"24421843000100C72253120F0A0E1AB1124E2ED236705B373D8C456C55F06A74",
+		INIT_1E => X"2C8334624CE62C201C611C413C6350216042644264636441608370C65C4350A6",
+		INIT_1F => X"2441242024002800300034213C214041404240213C003C0028E524C424C428C3",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(5),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(5),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(5),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );	
+	
+	
+	
+   RAMB8BWER_inst_6 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"725272736E5265F05DCE4D4B40E834A62C632863244224212000200028212842",
+		INIT_01 => X"72D676F772D66E946E736E53727376B57ED67AD57AB572937693767372526E51",
+		INIT_02 => X"25062484452A5DD06E536E7376B56E945A10498C498C456C498D55F062526A94",
+		INIT_03 => X"6063604168A46CC65C434CA5244210021065154B26533AF71E301E0E2A2E1D48",
+		INIT_04 => X"4463444228E524C424C428C32CA334624CC6284014611C613C42582264426042",
+		INIT_05 => X"2C63306430642C422C222C222C4230432C422401240024212800302038414063",
+		INIT_06 => X"7F177F177EF67AD57AB476B472737273767372536A3161CF558C492A38C73085",
+		INIT_07 => X"4DAD456C498D51CF5E3166736EB572D676F772B56E736E73729476B57AF67F17",
+		INIT_08 => X"190A1D2A210918641C4324432C6441094D6C59CF6E7376D57AF77AF66EB45E30",
+		INIT_09 => X"146120613C42584260425C426063604170E668856064486428630C010C6408A6",
+		INIT_0A => X"2C622441284128212C003000382144632CE524C424C428C32CA3346248C62C41",
+		INIT_0B => X"6A326A1161CF59AE4D4B45093CC734A530642C43304330223022342234433063",
+		INIT_0C => X"72B56E946E9472B576D67F177F387F387F167F177F177AF676B576B472736E52",
+		INIT_0D => X"7AD67F167F177B1676F56A9351CD498C496C4DAE5A1066536A9472D676F776F7",
+		INIT_0E => X"6064446330841442082204220C22102214221821202134843CA64CE961CF6E73",
+		INIT_0F => X"24E428C32CA3346244C52C611440206240425C435C4158216063644178E76884",
+		INIT_10 => X"348334433421382134003420344134613442344334433021344130002CE528C4",
+		INIT_11 => X"7F387F377F377EF67AD5769472736A3261F059AE4D4B450940E83CC73CC734A5",
+		INIT_12 => X"59F062526A9472D672F776F776D672B56EB46EB476F67B177F387F387F377F58",
+		INIT_13 => X"140034A5556B72327A957AF67F177F177F377F167AF672B466104D8D496C4D8D",
+		INIT_14 => X"5C415C426063686278E6686360844C8434842084106410431422184114202062",
+		INIT_15 => X"38433C6330213441310528C424E328C32CA3306244C52C621840286240435843",
+		INIT_16 => X"558D4D6C45093CC738C738E634C438A440A440634042446240413C2038213C43",
+		INIT_17 => X"76D67B177F387F387B377B377F387F377F177F177AF676B572946E746A3261F0",
+		INIT_18 => X"7AF576B46E5251AE496C496C55CF5E1166746EB56ED672D676D672D66EB56E94",
+		INIT_19 => X"2CE82CC828A52CA53D074949490834636E3176947EF77F177F377F377F367F16",
+		INIT_1A => X"40C52C821C412C63444354425841606360636C8378A66C63608454A53C8534E7",
+		INIT_1B => X"38413C4144624C83402138213C42384240A43863350628C428C328C330C33082",
+		INIT_1C => X"7B1776D672B572956A5366325DCF516C492A38E830A62C8434A534A534633442",
+		INIT_1D => X"6EB572D676D672D672B572B572D57AF77F187F187B377F377F387F377F177F17",
+		INIT_1E => X"7EF77F177F387F377F377F167EF67AB5725259CF4D6C454B4D8D59F062536AB5",
+		INIT_1F => X"78856C63608458A54885452A456D4D8E55CF59AE65CF71F071CE592A51297EF6",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(6),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(6),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(6),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	
+   RAMB8BWER_inst_7 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"350628E428E328C330C3308240C42C821C4030634443544354415C6260636CA4",
+		INIT_01 => X"34E834C730A630A530A5308334832C213421406244623C403400342030203842",
+		INIT_02 => X"7F177F377F387F377F177F177B1776F672D572B56A746A335DF055AE4D6C412A",
+		INIT_03 => X"518E494B496C55CE62326A946AB572D676D676D676D676D672B576F67F177F17",
+		INIT_04 => X"72537E947E94723140A572517F187F177F377F377F377F177EF67EB576536612",
+		INIT_05 => X"4843584350205862606370A574646C6360835CA64C654D4B55AF5DB06A337253",
+		INIT_06 => X"384140823C6234203020342135062CE428C328C330C3308240C428821C203043",
+		INIT_07 => X"6E946A73621159AE518D496B3D2938E834A72C8628852CA62CA52C6328212800",
+		INIT_08 => X"76D676D672B576D67AF77B177F177F377F377F377F177F177F177AF676D672B6",
+		INIT_09 => X"7F167F177EF67ED676746A5355CF496C496C51AE5E3166736EB572D676D776D6",
+		INIT_0A => X"4C64554B65F169F27213725476B576B576D472926A0F44C57AB47F167F167B16",
+		INIT_0B => X"30C3348240C42C611C402C42444354435020586264636CC57463706360835CA6",
+		INIT_0C => X"28A628A528A52484204224422800386240833C623841342135272CE428C328C3",
+		INIT_0D => X"7F377F177F167AF67AF776D572B46E7366115DF055AE4D6C454B38E930C82CA6",
+		INIT_0E => X"5E10623272D676F776F77B187B1776F776F672D676F67B177B177F177F177F37",
+		INIT_0F => X"7AB55DCD49077EF57F167F167F167F167AF67AD576B56A5359EF4D6C4D6C51AE",
+		INIT_10 => X"64636083746470635C8458A54C6350E865CF6A11725376737A957EB57ED67ED5",
+		INIT_11 => X"3841344135682D0528C430C334A238A240A33482206024404063544450215C62",
+		INIT_12 => X"59AE518D494C3D0A34E92CC728A628A628A524841C2220212400280034423C63",
+		INIT_13 => X"72D57AF77B177B177F177F377F377F177F177AF77AF776D572B472946A3161F0",
+		INIT_14 => X"76B56A735DF04D6C496C51AE5E10623272B576F777187B187B187B177B1772D5",
+		INIT_15 => X"725376737A957EB57ED57EF67EF676B4556951487F167EF57F167F167EF67AD5",
+		INIT_16 => X"206020403C635043500160836062606270636C635C8354A44C844CC765AE69F0",
+		INIT_17 => X"182118211C2120212000282030413041396931262CE430C434A334A240A43CA3",
+		INIT_18 => X"7AF776D676B572956A5266115DF055AE4D6D414B390A30E82CC628A628A52084",
+		INIT_19 => X"77187B387B387B187F187AF676D67AD67B177B177F177F377F377F377F177EF7",
+		INIT_1A => X"5DCD7F377ED57F167EF67AD576B46E7362104D8D494B51AE59F0623172B57B17",
+		INIT_1B => X"58634C8350844885618C69F06E32725376747A957EB57EF77ED57ED57AB34D27",
+		INIT_1C => X"30E530C530C430A340A440C42060244038424C634C21608364635C6170636C63",
+		INIT_1D => X"3D2A34E82CC72CC624A62084102110001021142118211C00202028213DAA3547",
+		INIT_1E => X"7F177F377F377F377F177EF77AF776D676B576B56E736A325DF059CF518D454C",
+		INIT_1F => X"494B51AE59F05E1172B57B187B397F397F397F387F187F187ED776B47AF77B17",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(7),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(7),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(7),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );	
+	
+	
+	
+	
+   RAMB8BWER_inst_8 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"76947ED57ED57ED57ED57EB4492761EE7F177EF67EF67AD576B46E736211518D",
+		INIT_01 => X"4C415862688358406C626C635462486350A54464616B6DCF6A116E3272537674",
+		INIT_02 => X"1421182118001C003DCA3968310530E530C430A33CA340C42460286138424C84",
+		INIT_03 => X"72746A32621159CF51AE496C414B390930C72CC724A618630C000C210C210C21",
+		INIT_04 => X"7F187EF77AD6729372B47B177F377F177F377F377F377F177AF77AD676D576B5",
+		INIT_05 => X"7EF67ED576B46A7362314D8D494B51AE59F062316E947B177B387B397B187B17",
+		INIT_06 => X"5508658D65F06E326E32725376947AB47AB57ED67ED57EF67AB45DCD72727ED5",
+		INIT_07 => X"38833CA328812841384244624C62588368635C4070836C84506244624C844884",
+		INIT_08 => X"24A6146308000821082008210C21102114221C4241EB3968352634E534E534A4",
+		INIT_09 => X"7F377F177AF77AD676D576B572746A32621159CF51AE4D6D454B3D0A34E82CC7",
+		INIT_0A => X"6A7372D676F776F77AF77AF77AD676B57274661072B47B177F177F177F377F37",
+		INIT_0B => X"7ED57AD57EF67ED57EB47ED57EF67ED576B46A5362314D6C494B51AE59EF5E31",
+		INIT_0C => X"70626C84506240624884488450C6658C61D06A126A326E53767476947AB57AD5",
+		INIT_0D => X"3E0C3989352634E534C434A338833CC32C812C6138424062488254626C636040",
+		INIT_0E => X"55AE4D8D494C412A34E82CC724C61463040004210820082008210C210C211021",
+		INIT_0F => X"76D57B177F177F167F377F177F177F177AF77AF676D576B672746A3266325DF0",
+		INIT_10 => X"62114D6C454B4D8D55CF5E1062516A9472B572B572B572B56A52663155AD59CD",
+		INIT_11 => X"65F16A116E52727376947AB57AD57EF67EF67EF67ED57ED57EF67AD576B46A52",
+		INIT_12 => X"38423C42488350416C6364407041708450623C41406348A548A45D4A5DAF65F0",
+		INIT_13 => X"0420080008200821080108013E0C3DCA3D67390538C438A33C833CC430822C61",
+		INIT_14 => X"76D57AD672746E5366325DF055CF4D8D496C412A38E930E824C7146300000000",
+		INIT_15 => X"6631621059CE4D6B55CE6A727AF77F177B167B167F377F177F177F177AF67AF6",
+		INIT_16 => X"7ED57ED57EF67AD572B4665262104D6C454B4D8D55CF5E105E1066526A536A52",
+		INIT_17 => X"382148A548845508598E61CF61D066116A316E52727376B476B57F177AD67EF6",
+		INIT_18 => X"3CE43CC43CA340C434A330613442384148A34C206C636860702070844C623C62",
+		INIT_19 => X"3D0930E824A61443040000200400040008200821082108013E0D45EC45893D26",
+		INIT_1A => X"7F177F167F177EF77EF77AF676D676B672946A5366315E1059CF51AD496C412A",
+		INIT_1B => X"4D8D51CE55EF59F05DF059CF55AE4D8C45295DEF72947AD77F187F177F177F16",
+		INIT_1C => X"725376747A957AD67ED67EF77ED67ED67EF67AD576B46E5262114D8D452A496C",
+		INIT_1D => X"64636483680074635C623C4130413C84488450C6554B5DAE61CF61F062116A12",
+		INIT_1E => X"08210821364E3E0D45CB454840E53CC33CC340A3408334833062344140A34441",
+		INIT_1F => X"623162105DCF55AE494B41293D0934E828A61442040000000400040004010821",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(8),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(8),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(8),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	
+	
+	
+	
+   RAMB8BWER_inst_9 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"76D676D67B187B177F177F177F167F177EF67EF77EF776D67AD776B66E946A73",
+		INIT_01 => X"7AB572736611518D38E83D093D093D29414A456B496B454A4129412941295E10",
+		INIT_02 => X"5108596C598D5DCF61F166116E3376547A747A957EB67ED67ED67ED67ED67AD5",
+		INIT_03 => X"488438832C6230413CA340615C63608468217862646140412C42304248A44CC5",
+		INIT_04 => X"000000000000040004200421082108012E6F362D3DCC414841063CE434A144A3",
+		INIT_05 => X"7AF776D77AD676B66E946A73663162115DEF55AE4D6C412A390930E724A61042",
+		INIT_06 => X"30C630C734E73908456B55EF76F776D77B177B177B177B177F177F167F177AF7",
+		INIT_07 => X"7A957A957AB57AB67ED67AB57AB572946A325DF0452A3D0934C7288528842CA5",
+		INIT_08 => X"6883482130422401408448A54CE7554A556C59AE5DD061F06A116E1272337274",
+		INIT_09 => X"420E418A41263D0438C244A348A43883306230413CA33C615C63688464407483",
+		INIT_0A => X"4D6C412A39092CC720850C22000000000000000004000421040004002E71322F",
+		INIT_0B => X"7AF77EF77EF77EF77EF77AF77AF776F77AD676B66E946E74663262115DF059CE",
+		INIT_0C => X"51AE456C3D2A34E830C730E730E7392949AD498D498C51EF667372D77B177B17",
+		INIT_0D => X"59AF5DCF61D065F06A116E327274767476947AB57AB67AB57AB572946A535E11",
+		INIT_0E => X"3C833C4158636CA4580068626C835021384228212C22406448E74D09514B558D",
+		INIT_0F => X"04000400042004012A722E5035ED3DAA41674946518840A348A43C8330623041",
+		INIT_10 => X"6E946E736A5266315DF059CF4D8C412A390828C718630C210400040100000000",
+		INIT_11 => X"4DAE55CF55EF72B67F187EF77ED67ED77ED67ED67ED77EF77AD776D676D672B5",
+		INIT_12 => X"7AB57AB57AB572946A5359D051AF4D8D498D458D456C416B3D6A49AD5E525E31",
+		INIT_13 => X"2401342340A544E74909514C59AE5DAF61D061D065F06A126E53727476747695",
+		INIT_14 => X"516740C344A44083346230613CA34042546368A35820584068635C4240212C42",
+		INIT_15 => X"14420C21040000000000000000000000040004212A932E51362F3DEC41884124",
+		INIT_16 => X"6E126A126E536E9472B576B56E946A736A736632621059CF518D454B390924A5",
+		INIT_17 => X"49AE49AD498C51CE667372B6623255AE6A537AD77EB77E957A547E747A327632",
+		INIT_18 => X"61D065F16A126E336E5372747294769576946E746A53621159D055CF51AF4DAE",
+		INIT_19 => X"586154416042646348203020282128223C843CA645084D2B556D59AE61CF61D0",
+		INIT_1A => X"2A932E732E2F3A0D45A9454544E340C340A344A43C822C613CA34042442164A3",
+		INIT_1B => X"62105DCF518D496C39091C6310420C4208210401000000000000000004000421",
+		INIT_1C => X"76547A757A347E3375F16DD0658E61AF61F06E7476B576D672956E736A736632",
+		INIT_1D => X"6A536632621259F155D055D051CF51AE518E55AF62116E546A336E537A967675",
+		INIT_1E => X"40C7490A514C556D59AE5DAF5DCF61D065F16A126A326E537274727472746E53",
+		INIT_1F => X"44A330823CA44463444258A3546154625C426464502040412400242134633CA6",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(9),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(9),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(9),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	
+	
+   RAMB8BWER_inst_10 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"0000000000000000042004212E9432932E503A2D45CA4945490540E440C34CA4",
+		INIT_01 => X"76D672B572956E736A73665262105DCF55AE454B2CC6144210420C4208210421",
+		INIT_02 => X"6A126E13765476546DF269F169F165D15D6D614D614D616D5D8E6A12769676D7",
+		INIT_03 => X"66126A326E536E536E536E536E336A3366335DF25DF159F055D055CF61F06612",
+		INIT_04 => X"5C41482028211C212C4138843CA644E9490A4D4B558D558E5DAF61D061D165F1",
+		INIT_05 => X"45EA4D664D2540E440C34CA448A3308138A3404340424C8254A3544358426062",
+		INIT_06 => X"206414420C420C420C4204010000000000000000042004213294329332703A4E",
+		INIT_07 => X"656E6DF17A757EB776B672B57AD776B66A736E736A73665262105DCF55AE3D29",
+		INIT_08 => X"5DF159F059D059AF5DD05DAF556D596E5D8E618F5D6E69B0723465D050EA590B",
+		INIT_09 => X"516C518D598E59AF5DB05DD061D066126A336A336A326E536A336A33661361F2",
+		INIT_0A => X"3C42446158C550425463584164624C003462182028203063388540C844E8492A",
+		INIT_0B => X"042100003694369432713A4F45EB51674D043CE33CC348A348A330A238A34463",
+		INIT_0C => X"6E726A32621059CF51AE2CC6186310420C420C42104210420421000000000001",
+		INIT_0D => X"6A337AD87654616D610B6D6F7E767A9676757A967675769676B676956E736E72",
+		INIT_0E => X"66136A336633663262115DF15DD059AF556D514C554D514D4D2C4D2C556D5DD0",
+		INIT_0F => X"24012C632C63308444E844E84509494B518D558E59AF59AF5DD061F161F16612",
+		INIT_10 => X"34E244C34CA33CC33061406240404C635CC34480408250236864502038402C21",
+		INIT_11 => X"104210420C420821040000000000000032B33694369432503A2C4DA859674123",
+		INIT_12 => X"72137275769676B56E736E736E52663161F05DF0454C20641863106310421042",
+		INIT_13 => X"4D0B48C9510B61B07A757A966A125DD0592C658E76547ED77F197A967A557634",
+		INIT_14 => X"558E59AF59B05DD05DD161F161F266116612661261F1558E516D514C4D2B512B",
+		INIT_15 => X"3C41402258225C6240203421282124202863348438A644E840E8452A4D6C516D",
+		INIT_16 => X"2E723271360C49A86E0C492438E23CA24883406244A348C444613C2154A34C81",
+		INIT_17 => X"30E8182214421043104210431042104310630C4308210000000000002E933294",
+		INIT_18 => X"7F197AF87AB67A346DD169D16E336E74729572956E936E736E5266315DCF55CF",
+		INIT_19 => X"558E4D4C490A44C944C848A84CA854EB590B5D2D5D4D614D5D6D618F72127E96",
+		INIT_1A => X"30643CC738C73CE8494B4D4C516D55AE55AF55AF59AF59D05DD05DD061F05DD0",
+		INIT_1B => X"50A4550748823420486254A33C41344148415821504138213042240028422C64",
+		INIT_1C => X"0C420401000000002A932E942E7332923E6F45A85546594740E33CC248A35083",
+		INIT_1D => X"72946E736E5266115DCF496C20851C6314421042106310431043144310431043",
+		INIT_1E => X"6DD171F276337E977ED87F197AB67E9779F371B1616F59CF625366746E9572B5",
+		INIT_1F => X"558F55AF59B05DAF5DB0556E450A40C83CA73C8640A848C8550B614D658F71D1",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(10),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(10),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(10),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+   RAMB8BWER_inst_11 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"5821402134412C2024202C632C43348538C634E73CE8450A494B4D6D518E518E",
+		INIT_01 => X"55465925490434C240A3548450633C61448238213C4154C5444238822C005441",
+		INIT_02 => X"14641464144314431443104310420C420400040026932A742E742A71429049CA",
+		INIT_03 => X"598E5A1166746EB572B572946E7372736A32621159AE30C71864184314431463",
+		INIT_04 => X"510B61B069F172547A7576557EB77EB77A967ED87AD87A96761375B26D6F616E",
+		INIT_05 => X"34C73CE84109452A494C4D6D4D6D518E55AF558E598F556E4D4C4D4C512C4D0B",
+		INIT_06 => X"304144A450A438612420404158634C2138213441282028412C42306334A530A6",
+		INIT_07 => X"26942E942A732A72364F49EB5147550548E430C234814C8350833C8240823C41",
+		INIT_08 => X"452A206418631443144314631864186414641444146414631043104308220401",
+		INIT_09 => X"6DF26DB1696F654E5D6E55AE55CF6232729572B672B572946E736E5262105E11",
+		INIT_0A => X"558E516D494C4D4C4D4C512C554D65D169D172137A557A347E557A557A557634",
+		INIT_0B => X"302028202C4230633084308534A638C73CE84109412A454C494C4D6D518E558E",
+		INIT_0C => X"30A144824CA4408240A248832C41344250A5406124202C205063542240213841",
+		INIT_0D => X"18641864144310431043082226942E942E742E723A2E4DEB516759464D0538E3",
+		INIT_0E => X"72B572946E526A31621151CE2CA6186314631443146318641C85188518651864",
+		INIT_0F => X"6D91719179D371B171B1696F614F614E5D4E5D8F55CF55F05A316E747AB672B5",
+		INIT_10 => X"3CE93D0A412A452B494C4D6D4D6D494C452B410A40E940EA44EA552D614E6970",
+		INIT_11 => X"2C2020003C42504248423C21344128002C21304330642C842C8530A634C738E8",
+		INIT_12 => X"3E4F5A2D5DA85D67552644E438A238814CA44862408250C5384230214CC54882",
+		INIT_13 => X"18841C851C851C85186518651C651C641864146310630C422A9432742E733272",
+		INIT_14 => X"5E1262126A5372B676F776B576B572736E5266115DEF3D292464186414841464",
+		INIT_15 => X"38E93CE938C840C944CA4CEB4D0C550D594E552D552D552D596E556E51AF55F0",
+		INIT_16 => X"30432843286428652C8634A734C734C838E93D0A410A452B454C414C412B3D0A",
+		INIT_17 => X"408248A2446338223C824CE43C4224012C21402050214421344130202C213042",
+		INIT_18 => X"104310632E933274327332723E4F5E2D61885D675D2750C43CA2306048835484",
+		INIT_19 => X"4D8C24851C841464148418641C8520A620A620861C861C8520851C8518641464",
+		INIT_1A => X"454D4D8F55B055D05A11623366536A53729572D776F776B5769572736A326210",
+		INIT_1B => X"39093D2A3D2B412B412B412B3D0A412A410A3D0A3D0A3D0B412B454C410B412C",
+		INIT_1C => X"44424400402138412C202C21304230632442246328643085308534A734C734E8",
+		INIT_1D => X"592650C440A33081386254A44C614481446338432C2050C54884282024413021",
+		INIT_1E => X"20C720C724A620861C651864146414642A943274367332513A2E4DEC51885567",
+		INIT_1F => X"76B6769576946E53661159CF39091863188414841885186520A628C824C724C7",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(11),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(11),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(11),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+
+   RAMB8BWER_inst_12 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"412C414C456D456D498E4D8F51D055D159F05DF1623266536E9472B676D676D7",
+		INIT_01 => X"2042244330852C852C8630C734E9350939093D0A410A452B412B412B412B3D2B",
+		INIT_02 => X"3022486350A42C40202128223021444244004441342030203441386328622041",
+		INIT_03 => X"3652322F3E4F460D45895167552550E444C330A2286048A35C82486044833463",
+		INIT_04 => X"18851CA624C72CE92CE92CE828E828E828C724A720A61C851885186426743253",
+		INIT_05 => X"66546E9572B67AD776D776D672B5769476956E3266114D6C24851863148318A5",
+		INIT_06 => X"410A412B452B454C454C454C456D496E498E498E4DAF51B055F159F25E126233",
+		INIT_07 => X"40003841344138422821244224421C212042246324642CA630C730E834E9390A",
+		INIT_08 => X"284040815CC4486044823C63342134204CC43C82240030432C002C2040624421",
+		INIT_09 => X"24C720A61C852064265342B746B636513E4F4A0E49895167552650E444C434A2",
+		INIT_0A => X"55AE34E71C631864148418A51CA624C72CE9310A310931092D092D092CE828C8",
+		INIT_0B => X"4DAF51D055F159F25E3362536A756EB672B676D77AD776B776B672746E536632",
+		INIT_0C => X"1C42206324652CC72CC834E9390A3D2B412B414C454C456D496E498E4D8F4DAF",
+		INIT_0D => X"34212C42304220002C4144424801444238203C41344228411C00204218411C42",
+		INIT_0E => X"4D8A5147592654E448E434A32C61386054C450824861488338202C203C824CA4",
+		INIT_0F => X"310A31092D092D0930E92CE924E820C724A62CA63AF83A754AB73E933A3045EE",
+		INIT_10 => X"76B7729572746A3261F05DF03D2A20641C84188418A518A520A628E8310A350A",
+		INIT_11 => X"454C454D496E498E4D8F4DAF51B055D159F25E135E3362546A956EB676D77AD7",
+		INIT_12 => X"384134412C411C2018411C6218421C4220432065248528A730C8390A3D0B412C",
+		INIT_13 => X"4C614C6240412C40304054A540632820284124622420382148224C2240004041",
+		INIT_14 => X"36D6367436323A723E5041ED518A55475926550548E438A33082304044A258A3",
+		INIT_15 => X"18A51CA624C72CE9352A352B352A310A3109310A350A310A2CE928E828C72CA6",
+		INIT_16 => X"5E3262546A9672B776D776B76E756A53663262115DF0414B24851C641C851885",
+		INIT_17 => X"1C43206428A62CC834E9392B3D2B412C456D496E498E4D8F51B051D055F15A12",
+		INIT_18 => X"282024003C224C234801404140623C413C832420182018201C621C421C221C43",
+		INIT_19 => X"4CE43CC330623061386158C45082548248412C40282044424CA5282024202C42",
+		INIT_1A => X"350A310A2D0A2CE92CE830C72673325336523671427145ED55CC55475D475925",
+		INIT_1B => X"414B24851C6418841C851CA620A620A728C8310A352B392B350A352A352A30E9",
+		INIT_1C => X"498E4D8F51B051D055F15A125E1262336A756A756A756A5462325DF159CF55AE",
+		INIT_1D => X"28201C20140020422042182118211842184224A528C730E9350A3D2B414C456D",
+		INIT_1E => X"3021300040833CA328412C21282020202400444248223C204021444240622C20",
+		INIT_1F => X"424F4DEC4D4851475D685D46510540A434823062346154A454A454614C613841",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(12),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(12),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(12),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+
+
+
+   RAMB8BWER_inst_13 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"394B392B350A30E9392B350A352A352A310A310A310A30E92A7432733A73362F",
+		INIT_01 => X"62125DF155CF4D8D494C34E824641C64188418851CA620A724A728C82D09352B",
+		INIT_02 => X"186320A52CE8350A3D0B414C496E4DAF4D8F4DAF51D155F15E12623362336233",
+		INIT_03 => X"3C424443482148414442406230212821202114002063204220421C4218411442",
+		INIT_04 => X"3062446358A458A34C61484230012400302048C430412C002820242018002000",
+		INIT_05 => X"350A310A32743A5346934A92526F6E7065EC490555465946510544C438833483",
+		INIT_06 => X"1CA624A728C82CE9310A392B394C416D498E350A392B352B352A352A352B352B",
+		INIT_07 => X"4DAF51D055D059D055D055AF4D8E454B390930A7288524642084186314841885",
+		INIT_08 => X"1400204120421C6218421441102114421864248630A834EA3D2C456D496D498E",
+		INIT_09 => X"3C42280028202421204110002400442248214C62484148634043344224211C21",
+		INIT_0A => X"51255546552548C43C8434832C614063508350824C614C433822244124204062",
+		INIT_0B => X"392B352B352B352B352B352A350A352A3A7542534A5256926ED365EC618A5147",
+		INIT_0C => X"18631863186318641C8520A624A628C82CE9350A392B3D2C414D416D5613392B",
+		INIT_0D => X"14641CA628E831093D4C414B454C496C498D416C392A30E828A620641C641C64",
+		INIT_0E => X"4C6350424C2148633C83242020401C4120631C4218411C421842184218221442",
+		INIT_0F => X"48614C624C432C210C201C00486418201C402C012C2118001800240038214021",
+		INIT_10 => X"56B46294665161CD5D6951465989514755484CE540A438A42C622C6154A45CC4",
+		INIT_11 => X"3D2C3D4C414D416D49B03D4D394C392C352B352B352B352B350A352A3E744674",
+		INIT_12 => X"1843144214221442144318431864186418641C8520A624A728C72CE830E9390B",
+		INIT_13 => X"204218421C4218421442144214221422142214221C851C851C8520A520841C64",
+		INIT_14 => X"242120001C001C00240034413C4148424C624421404140A42820202028422842",
+		INIT_15 => X"44A438832C6234A33C415083486244404C6330210C001000344234A41C002420",
+		INIT_16 => X"352B352B352A352B42954A9462F76F17665159AC55694D2659A9516859685106",
+		INIT_17 => X"28C82CE830E9350A392B3D2C414D414D416D416D416D416D3D4D3D4D392B392B",
+		INIT_18 => X"0C220C420842084210421042144214421463186418641864186418841C8520A6",
+		INIT_19 => X"44423C0144433C422C002C422C4224421C621462146218421C22182218221442",
+		INIT_1A => X"1C000C0018004064280018202020240120211C00202020003041384244634863",
+		INIT_1B => X"4D69494759CB5189598955474CE640C4308234A43483448448633C2044623C21",
+		INIT_1C => X"416D414D3D4D3D4D392B392B392B392B352A352B3E74469452B566F6667251AB",
+		INIT_1D => X"1464146418641C851C8524C72CE930E9350A3D2B412C454D454D456D456D456E",
+		INIT_1E => X"1C42184114411442144214631463106310430C430C420C421063146314631443",
+		INIT_1F => X"1C201C2020002C4130413C62444248434401404248633C223442284124412441",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(13),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(13),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(13),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );	
+	
+	
+	
+	RAMB8BWER_inst_14 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"28A43062448338213C41446330210C0010204CE8408414002041240120001C20",
+		INIT_01 => X"3E7542954A9456945A5151CD4DAA49895E0D51AA558955485948514838C334C6",
+		INIT_02 => X"454D454D456E456E456D456E456E414D414D414D394C394B392B352B352B352B",
+		INIT_03 => X"10631063106314631463144318641C851C8520A524A62CE835093D2B412C412C",
+		INIT_04 => X"3800448344843C43344230223022242218411841184218421442144314431443",
+		INIT_05 => X"38642421182020211C002041202120002021200028212C213C63404244423800",
+		INIT_06 => X"59AA55685569492634A328A41862206134423441344140423C621C400C201C00",
+		INIT_07 => X"3D4C394C392B352B352B350A42B742B64ED75AD6565151ED4DAB49AA5A0D55CB",
+		INIT_08 => X"2CC734E9390A414C414C454D454D454D456E456E456E456D456E416D414D414D",
+		INIT_09 => X"2442204220631C63184214421442144214421442144318631C642085248628A6",
+		INIT_0A => X"202028212C2138623C834062382138203C4244644463402340223C632C632842",
+		INIT_0B => X"304234213C42284014201000200030431C41142020011C002421240124212021",
+		INIT_0C => X"5672560F4DAB39264147456849474926450534C324601C421483186228633463",
+		INIT_0D => X"456E456E456E456E414D414D3D4C3D4C392B392B350A350A42D842B74ED85AF7",
+		INIT_0E => X"1C432064248528A628A630C734E93D0A412C454C454D454D456D456E496E456E",
+		INIT_0F => X"3C014422694B44643C6438643463306328422462248324841C421C421C421C42",
+		INIT_10 => X"1C211800200024002421202124222021242124202C623883304134423C633400",
+		INIT_11 => X"20821C6318A4106218623084306224203441344220410C201000284224621420",
+		INIT_12 => X"350A350A42D942D94EF956B6523155EE51AB390534E34146412641053CE52CC3",
+		INIT_13 => X"456D496E496E496E456E496E456E456E456E456E416D414D3D4C3D4C392B392B",
+		INIT_14 => X"346334422C632864288428842884288528A62CC730C738E93D0A454C496D456D",
+		INIT_15 => X"2020242138C5282130213C633C83408340623C423863386338633C843C843883",
+		INIT_16 => X"284218000C20144024421C21142018211C202020202120212022286320222021",
+		INIT_17 => X"34C341254126452738E528C31C821C83146208610C4024422C6320202C413842",
+		INIT_18 => X"416D416D3D4C3D4C3D2B3D4B49AE30E942FA46FA531A4E954E1051CD518A4526",
+		INIT_19 => X"38C74109410A494C4D6D496C496D496D498E498E496E456E456E456D456E416D",
+		INIT_1A => X"34633463386338433C643C644064406438853485348534853485308534A538C6",
+		INIT_1B => X"1C212021202120212842244224411C001C0034A430832C41344238633C633863",
+		INIT_1C => X"08411C4228631C4124413042284220200C0010201C212021142014001C201C20",
+		INIT_1D => X"571A5294520F5E0E55AB458839253D46414739252CE41C82106110620C410861",
+		INIT_1E => X"4D8E496D454D454C456D416D416D416D3D2C414C3D2B414B76F830C746FA4AFA",
+		INIT_1F => X"3C843C854085408544A644C748C74909490A4D2B4D2B492B494B4D6C4D6D4D8E",
+
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(14),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(14),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,      -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(14),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+	
+	
+	
+   RAMB8BWER_inst_15 : RAMB8BWER
+   generic map (
+      -- DATA_WIDTH_A/DATA_WIDTH_B: 'If RAM_MODE="TDP": 0, 1, 2, 4, 9 or 18; If RAM_MODE="SDP": 36'
+      DATA_WIDTH_A => 18,
+      DATA_WIDTH_B => 18,
+      -- DOA_REG/DOB_REG: Optional output register (0 or 1)
+      DOA_REG => 0,
+      DOB_REG => 0,
+      -- EN_RSTRAM_A/EN_RSTRAM_B: Enable/disable RST
+      EN_RSTRAM_A => TRUE,
+      EN_RSTRAM_B => TRUE,
+      -- INITP_00 to INITP_03: Initial memory contents.
+      INITP_00 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_01 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_02 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      INITP_03 => X"0000000000000000000000000000000000000000000000000000000000000000",
+      -- INIT_00 to INIT_1F: Initial memory contents.
+		INIT_00 => X"308434843063304234433464346434643463306334643464346434643C843C84",
+		INIT_01 => X"206214001C411000140018001C21202120212021244228432C6324631C001800",
+		INIT_02 => X"24C418821062084108410841082010201C621C4118202042286320211C001C21",
+		INIT_03 => X"416C394B3509392A4AF94EF956D75252560F6E9251ED49EC3D68352535253525",
+		INIT_04 => X"514C514C514C516D516D516D514E4D4D4D4D494D4D6D4D6D496D496E414D3D4C",
+		INIT_05 => X"308530853085308538853C8540A640A740A63C8640A744C848E9510B512B512C",
+		INIT_06 => X"1C2220422042248320631C211C2130A530A52C642C642C642C84308530A530A5",
+		INIT_07 => X"142014201C2120621420140020831441184218620C001000142118411C421C21",
+		INIT_08 => X"5A50567149ED39473526312620C4106208410442044104210821082014421862",
+		INIT_09 => X"34E930E930E930E92CE928E828E828E72D0824C7573A5B3B52B64E525A727716",
+		INIT_0A => X"2CA530A630A638C738C738C734C738E838E838E838E838E938EA38E938E934E9",
+		INIT_0B => X"20631C421C631C631C6320632064206420842084246324632864288428842885",
+		INIT_0C => X"080008000C000C000C211021102114211021144218421C63142118421C632084",
+		INIT_0D => X"04210421042104000C2110410C200C00100014420C000C000C200C200C211041",
+		INIT_0E => X"3A123E3239F0318C41CD45CD3DAC3DCD45EE2D0720C41CA41483084204420422",
+		INIT_0F => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_10 => X"0000000000000000000000000000000000000400040000000000000000000000",
+		INIT_11 => X"0400040008000400000000000000000004000000000000000000000000000000",
+		INIT_12 => X"0400040004000000000000000000040000000000000000000000040004000400",
+		INIT_13 => X"0000000000000000000100000000000000000000000000000000000004000400",
+		INIT_14 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_15 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_16 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_17 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_18 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_19 => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1A => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1B => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1C => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1D => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1E => X"0000000000000000000000000000000000000000000000000000000000000000",
+		INIT_1F => X"0000000000000000000000000000000000000000000000000000000000000000",
+
+      -- INIT_A/INIT_B: Initial values on output port
+      INIT_A => X"00000",
+      INIT_B => X"00000",
+      -- INIT_FILE: Not Supported
+      INIT_FILE => "NONE",                                                             -- Do not modify
+      -- RAM_MODE: "SDP" or "TDP" 
+      RAM_MODE => "TDP",
+      -- RSTTYPE: "SYNC" or "ASYNC" 
+      RSTTYPE => "SYNC",
+      -- RST_PRIORITY_A/RST_PRIORITY_B: "CE" or "SR" 
+      RST_PRIORITY_A => "CE",
+      RST_PRIORITY_B => "CE",
+      -- SIM_COLLISION_CHECK: Collision check enable "ALL", "WARNING_ONLY", "GENERATE_X_ONLY" or "NONE" 
+      SIM_COLLISION_CHECK => "ALL",
+      -- SRVAL_A/SRVAL_B: Set/Reset value for RAM output
+      SRVAL_A => X"00000",
+      SRVAL_B => X"00000",
+      -- WRITE_MODE_A/WRITE_MODE_B: "WRITE_FIRST", "READ_FIRST", or "NO_CHANGE" 
+      WRITE_MODE_A => "WRITE_FIRST",
+      WRITE_MODE_B => "WRITE_FIRST" 
+   )
+   port map (
+      -- Port A Data: 16-bit (each) output: Port A data
+      DOADO => salidas_rams(15),--ram_out_16bit,             -- 16-bit output: A port data/LSB data output
+      DOPADOP => open,         -- 2-bit output: A port parity/LSB parity output
+      -- Port B Data: 16-bit (each) output: Port B data
+      DOBDO => open,             -- 16-bit output: B port data/MSB data output
+      DOPBDOP => open,         -- 2-bit output: B port parity/MSB parity output
+      -- Port A Address/Control Signals: 13-bit (each) input: Port A address and control signals (write port
+      -- when RAM_MODE="SDP")
+      ADDRAWRADDR => addr_ram, -- 13-bit input: A port address/Write address input
+      CLKAWRCLK => CLK_25,     -- 1-bit input: A port clock/Write clock input
+      ENAWREN => enablers(15),--'1',         -- 1-bit input: A port enable/Write enable input
+      REGCEA => '0',           -- 1-bit input: A port register enable input
+      RSTA => '0',               -- 1-bit input: A port set/reset input
+      WEAWEL => "00",           -- 2-bit input: A port write enable input
+      -- Port A Data: 16-bit (each) input: Port A data
+      DIADI => X"0000",             -- 16-bit input: A port data/LSB data input
+      DIPADIP => "00",         -- 2-bit input: A port parity/LSB parity input
+      -- Port B Address/Control Signals: 13-bit (each) input: Port B address and control signals (read port
+      -- when RAM_MODE="SDP")
+      ADDRBRDADDR => addr_b, -- 13-bit input: B port address/Read address input
+      CLKBRDCLK => CLK_write,     -- 1-bit input: B port clock/Read clock input
+      ENBRDEN => enablers_b(15),         -- 1-bit input: B port enable/Read enable input
+      REGCEBREGCE => '0', -- 1-bit input: B port register enable/Register enable input
+      RSTBRST => '0',         -- 1-bit input: B port set/reset input
+      WEBWEU => we_b,           -- 2-bit input: B port write enable input
+      -- Port B Data: 16-bit (each) input: Port B data
+      DIBDI => data_write,             -- 16-bit input: B port data/MSB data input
+      DIPBDIP => "00"         -- 2-bit input: B port parity/MSB parity input
+   );
+	
+	
+end Behavioral;
+

@@ -1,0 +1,6 @@
+# Ignore everything in the root
+/*
+# Un-ignore all of subtree
+!/codigos/
+!.gitignore
+!*.xise

@@ -1,0 +1,78 @@
+//global system clock
+NET "CLK_50MHZ" 		LOC = A10 	| IOSTANDARD = LVTTL;
+//reset signal
+NET "RESET" 	LOC = T8 	| IOSTANDARD = LVTTL;
+//led_1 signal
+NET "led_1" 		LOC = T9 	| IOSTANDARD = LVTTL;
+//led_2 signal
+NET "led_2" 		LOC = R9 	| IOSTANDARD = LVTTL;
+
+NET "sw3" 		LOC = R7 	| IOSTANDARD = LVTTL;
+
+
+//sw fuera de placa
+NET "sw4" 		LOC = J13 	| IOSTANDARD = LVTTL;
+NET "sw5" 		LOC = K16	| IOSTANDARD = LVTTL;
+
+#------------------------------------ VGA ------------------------------------------------
+
+NET "RED<0>"  			LOC = "C16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "RED<1>"  			LOC = "D16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "RED<2>"  			LOC = "E16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "RED<3>"  			LOC = "F16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "GREEN<0>"			LOC = "F12" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "GREEN<1>"			LOC = "F13" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "GREEN<2>"			LOC = "G14" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "GREEN<3>"			LOC = "H16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "BLUE<0>"			LOC = "H11" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "BLUE<1>"			LOC = "H14" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "BLUE<2>"			LOC = "J16" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "BLUE<3>"			LOC = "J12" | IOSTANDARD = LVTTL    | SLEW = FAST;
+NET "H_SYNC"	 	 	LOC = "B16" | IOSTANDARD = LVTTL    | SLEW = FAST; 
+NET "V_SYNC"			LOC = "E13" | IOSTANDARD = LVTTL    | SLEW = FAST; 
+
+#------------------------------------ OV7670 ----------------------------------------------
+#
+#//ordenado a lo Pelado, ucf de spartan6
+#//lado izquierdo
+#NET "ov7670_sioc"			LOC = "A14"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_vsync"		LOC = "C13"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_pclk"			LOC = "B12"	| IOSTANDARD = LVTTL    | SLEW = FAST | CLOCK_DEDICATED_ROUTE = FALSE;
+#NET "ov7670_data<7>"		LOC = "C11"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<5>"		LOC = "B10"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<3>"		LOC = "C9"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<1>"		LOC = "B8"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_reset"		LOC = "C7"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#
+#//lado derecho
+#NET "ov7670_siod"			LOC = "B14"	| IOSTANDARD = LVTTL    | SLEW = FAST | PULLUP;
+#NET "ov7670_href"			LOC = "A13"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_xclk"			LOC = "A12"	| IOSTANDARD = LVTTL    | SLEW = FAST | CLOCK_DEDICATED_ROUTE = FALSE;
+#NET "ov7670_data<6>"		LOC = "A11"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<4>"		LOC = "A9"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<2>"		LOC = "A8"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_data<0>"		LOC = "A7"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#NET "ov7670_pwdn"			LOC = "A6"	| IOSTANDARD = LVTTL    | SLEW = FAST;
+#
+
+//ordenado a lo Pelado, ucf de spartan6
+//lado izquierdo
+NET "ov7670_sioc"			LOC = "P4"	| IOSTANDARD = LVTTL			| SLEW = FAST;
+NET "ov7670_vsync"		LOC = "P5"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_pclk"			LOC = "M7"	| IOSTANDARD = LVTTL    	| SLEW = FAST;//	| CLOCK_DEDICATED_ROUTE = FALSE;
+NET "ov7670_data<7>"		LOC = "N8"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<5>"		LOC = "P9"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<3>"		LOC = "T5"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<1>"		LOC = "T6"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_reset"		LOC = "N9"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+
+//lado derecho
+NET "ov7670_siod"			LOC = "N5"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_href"			LOC = "N6"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_xclk"			LOC = "P6"	| IOSTANDARD = LVTTL    	| SLEW = FAST | CLOCK_DEDICATED_ROUTE = FALSE;
+NET "ov7670_data<6>"		LOC = "L7"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<4>"		LOC = "T4"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<2>"		LOC = "R5"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_data<0>"		LOC = "T7"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+NET "ov7670_pwdn"			LOC = "M9"	| IOSTANDARD = LVTTL    	| SLEW = FAST;
+
